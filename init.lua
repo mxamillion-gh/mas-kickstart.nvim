@@ -690,6 +690,38 @@ require('lazy').setup({
             },
           },
         },
+        texlab = {
+          cmd = { 'texlab' },
+          filetypes = { 'tex', 'bib' },
+          root_dir = function(filename)
+            return vim.fs.dirname(filename)
+          end,
+          settings = {
+            texlab = {
+              auxDirectory = '.',
+              bibtexFormatter = 'texlab',
+              build = {
+                args = { '-pdf', '-interaction=nonstopmode', '-synctex=1', '%f' },
+                executable = 'latexmk',
+                forwardSearchAfter = false,
+                onSave = false,
+              },
+              chktex = {
+                onEdit = false,
+                onOpenAndSave = false,
+              },
+              diagnosticsDelay = 300,
+              formatterLineLength = 80,
+              forwardSearch = {
+                args = {},
+              },
+              latexFormatter = 'latexindent',
+              latexindent = {
+                modifyLineBreaks = false,
+              },
+            },
+          },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -708,6 +740,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'texlab',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -935,6 +968,22 @@ require('lazy').setup({
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
+    config = function(_, opts)
+      -- Define the tex parser
+      local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
+      parser_config.tex = {
+        install_info = {
+          url = '~/Projects/tree-sitter-latex/', -- Git repo for LaTeX parser
+          files = { 'src/parser.c', 'src/scanner.c' }, -- Required files for the parser
+          branch = 'master', -- Default branch
+          generate_requires_npm = false, -- No npm dependencies for generation
+          requires_generate_from_grammar = false, -- Pre-generated parser
+        },
+        filetype = 'tex', -- Associate with .tex files
+      }
+      -- Setup nvim-treesitter with existing opts
+      require('nvim-treesitter.configs').setup(opts)
+    end,
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
