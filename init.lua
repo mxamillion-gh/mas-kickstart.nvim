@@ -214,6 +214,13 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {
+  pattern = '*.typ',
+  callback = function()
+    vim.bo.filetype = 'typst'
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -722,6 +729,16 @@ require('lazy').setup({
             },
           },
         },
+        tinymist = { -- Add Tinymist configuration
+          cmd = { 'tinymist' },
+          filetypes = { 'typst' },
+          single_file_support = true,
+          settings = {
+            exportPdf = 'onType', -- Export PDF on typing
+            formatterMode = 'typstyle', -- Use typstyle for formatting
+            semanticTokens = 'disable',
+          },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -741,6 +758,7 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'texlab',
+        'tinymist',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -1003,6 +1021,18 @@ require('lazy').setup({
     --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+  },
+  { -- Add typst-preview.nvim
+    'chomosuke/typst-preview.nvim',
+    ft = 'typst', -- Lazy-load on typst filetype
+    build = function()
+      vim.fn.system { 'cargo', 'install', 'typst-preview' }
+    end, -- Install typst-preview binary
+    opts = {
+      dependencies_bin = {
+        ['tinymist'] = 'tinymist', -- Use Mason-installed Tinymist
+      },
+    },
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
