@@ -739,6 +739,15 @@ require('lazy').setup({
             semanticTokens = 'disable',
           },
         },
+        ruff = {
+          -- Your provided configuration
+          init_options = {
+            settings = {
+              -- Ruff language server settings go here
+            },
+          },
+          filetypes = { 'python' }, -- Ensure Ruff is associated with Python files
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -759,6 +768,7 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
         'texlab',
         'tinymist',
+        'ruff',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -811,6 +821,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        python = { 'ruff_fix', 'ruff_format', 'ruff_organize_imports' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
