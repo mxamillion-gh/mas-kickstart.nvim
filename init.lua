@@ -769,6 +769,7 @@ require('lazy').setup({
         'texlab',
         'tinymist',
         'ruff',
+        'mypy',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -1044,6 +1045,21 @@ require('lazy').setup({
         ['tinymist'] = 'tinymist', -- Use Mason-installed Tinymist
       },
     },
+  },
+  {
+    'nvimtools/none-ls.nvim',
+    event = { 'BufReadPost', 'BufWritePost', 'BufNewFile' },
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      local null_ls = require 'null-ls'
+      null_ls.setup {
+        sources = {
+          null_ls.builtins.diagnostics.mypy.with {
+            extra_args = { '--config-file', 'pyproject.toml' },
+          },
+        },
+      }
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
