@@ -84,6 +84,19 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+vim.g.clipboard = {
+  name = 'win32yank-windows',
+  copy = {
+    ['+'] = 'win32yank.exe -i --crlf',
+    ['*'] = 'win32yank.exe -i --crlf',
+  },
+  paste = {
+    ['+'] = 'win32yank.exe -o --lf',
+    ['*'] = 'win32yank.exe -o --lf',
+  },
+  cache_enabled = 1,
+}
+
 -- This sets the python interpreter to the neovim venv where pynvim is used
 vim.g.python3_host_prog = '/home/mxamillion/.venvs/neovim/bin/python3'
 vim.env.PATH = '/home/mxamillion/.venvs/neovim/bin:' .. vim.env.PATH
