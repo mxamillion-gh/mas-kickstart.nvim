@@ -84,6 +84,10 @@ I hope you enjoy your Neovim journey,
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
 
+-- This sets the python interpreter to the neovim venv where pynvim is used
+vim.g.python3_host_prog = '/home/mxamillion/.venvs/neovim/bin/python3'
+vim.env.PATH = '/home/mxamillion/.venvs/neovim/bin:' .. vim.env.PATH
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
