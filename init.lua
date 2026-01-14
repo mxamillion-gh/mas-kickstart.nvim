@@ -411,7 +411,9 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
-        -- pickers = {}
+        pickers = {
+          find_files = { hidden = true, no_ignore = true },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -458,6 +460,21 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+    end,
+  },
+  {
+    'lervag/vimtex',
+    lazy = false, -- Load always, highly recommended
+    ft = { 'tex', 'latex', 'bib' }, -- Load specifically for these filetypes
+    config = function()
+      vim.g.vimtex_compiler_method = 'latexmk' -- Use latexmk
+      vim.g.vimtex_view_method = 'sioyek' -- Example for macOS Skim
+      -- Or 'zathura', 'sumatrapdf', etc.
+
+      -- Further customization here
+      vim.g.vimtex_quickfix_autoclose = 1
+      vim.g.vimtex_fold_manual = 1 -- Manual folding enabled
+      vim.g.vimtex_fold_enabled = 1 -- Enable folding by default
     end,
   },
 
@@ -669,6 +686,12 @@ require('lazy').setup({
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+      local util = require 'lspconfig.util'
+      local root_files = {
+        'pyproject.toml',
+        '.git',
+      }
+
       local servers = {
         -- clangd = {},
         -- gopls = {},
@@ -739,6 +762,30 @@ require('lazy').setup({
             semanticTokens = 'disable',
           },
         },
+        pyright = {
+          filetypes = { 'python' },
+          root_dir = function(filename)
+            return util.root_pattern(unpack(root_files))(filename)
+          end,
+          settings = {
+            python = {
+              pythonPath = vim.env.VIRTUAL_ENV and (vim.env.VIRTUAL_ENV .. '/bin/python') or nil,
+              analysis = {
+                ignore = { '*' },
+              },
+            },
+            pyright = {
+              disableOrganizeImports = false,
+            },
+          },
+        },
+        ruff = {
+          -- Your provided configuration
+          cmd = { 'python', '-m', 'ruff', 'server' },
+          filetypes = { 'python' },
+          lint = { enabled = true },
+          format = { enabled = true },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -759,6 +806,9 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
         'texlab',
         'tinymist',
+        'pyright',
+        'ruff',
+        'mypy',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -811,11 +861,42 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        python = { 'ruff_fix', 'ruff_format', 'ruff_organize_imports' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      },
+    },
+    formatters = {
+      -- Custom ruff formatters using venv's python (in-place modifications only, no stdout replacements)
+      ruff_fix = {
+        command = 'python',
+        args = { '-m', 'ruff', 'check', '--fix', '--quiet', '$FILENAME' }, -- --quiet suppresses "All checks passed!" and other non-error output
+        stdin = false,
+        stdout = false, -- No stdout output
+        condition = function()
+          return vim.uv.fs_stat '.venv' and vim.fn.executable 'python' == 1
+        end,
+      },
+      ruff_format = {
+        command = 'python',
+        args = { '-m', 'ruff', 'format', '$FILENAME' }, -- In-place formatting on the file
+        stdin = false,
+        stdout = false, -- No stdout output
+        condition = function()
+          return vim.uv.fs_stat '.venv' and vim.fn.executable 'python' == 1
+        end,
+      },
+      ruff_organize_imports = {
+        command = 'python',
+        args = { '-m', 'ruff', 'check', '--select', 'I', '--fix', '$FILENAME' }, -- Specify select I for imports only
+        stdin = false,
+        stdout = false,
+        condition = function()
+          return vim.uv.fs_stat '.venv' and vim.fn.executable 'python' == 1
+        end,
       },
     },
   },
@@ -987,23 +1068,11 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     config = function(_, opts)
-      -- Define the tex parser
-      local parser_config = require('nvim-treesitter.parsers').get_parser_configs()
-      parser_config.tex = {
-        install_info = {
-          url = '~/Projects/tree-sitter-latex/', -- Git repo for LaTeX parser
-          files = { 'src/parser.c', 'src/scanner.c' }, -- Required files for the parser
-          branch = 'master', -- Default branch
-          generate_requires_npm = false, -- No npm dependencies for generation
-          requires_generate_from_grammar = false, -- Pre-generated parser
-        },
-        filetype = 'tex', -- Associate with .tex files
-      }
       -- Setup nvim-treesitter with existing opts
       require('nvim-treesitter.configs').setup(opts)
     end,
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'latex', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1033,6 +1102,21 @@ require('lazy').setup({
         ['tinymist'] = 'tinymist', -- Use Mason-installed Tinymist
       },
     },
+  },
+  {
+    'nvimtools/none-ls.nvim',
+    event = { 'BufReadPost', 'BufWritePost', 'BufNewFile' },
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      local null_ls = require 'null-ls'
+      null_ls.setup {
+        sources = {
+          null_ls.builtins.diagnostics.mypy.with {
+            extra_args = { '--config-file', 'pyproject.toml' },
+          },
+        },
+      }
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
